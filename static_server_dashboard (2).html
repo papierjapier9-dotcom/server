@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serwer Minecraft - Panel</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #1e1e1e; color: #f0f0f0; }
+.nav { display: flex; background: #2a2a2a; padding: 1rem; justify-content: center; flex-wrap: wrap; }
+.nav button { margin: 0 0.5rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; }
+.section { display: none; padding: 1rem; max-width: 800px; margin: 1rem auto; background: #2a2a2a; border-radius: 10px; }
+.active { display: block; }
+.fullscreen-modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); color:#fff; display:flex; justify-content:center; align-items:center; flex-direction:column; font-size:2rem; z-index:1000; display:none; }
+.modal-button { margin-top:2rem; padding:1rem 2rem; font-size:1.5rem; border:none; border-radius:10px; cursor:pointer; background:#28a745; color:#fff; }
+.package, .file, .plugin { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+.package-button, .primary, .file-button { padding: 0.5rem 1rem; border: none; border-radius: 5px; cursor: pointer; }
+.package-button { background-color: #ff9800; color: #fff; }
+.primary { background-color: #28a745; color: #fff; }
+.file-button { background-color: #007bff; color: #fff; }
+textarea { width: 100%; height: 150px; border-radius: 5px; border: none; padding: 0.5rem; font-size: 1rem; }
+.file-list { margin-top: 1rem; }
+.file-item { margin-bottom: 0.3rem; display: flex; justify-content: space-between; }
+input[type=text] { width: 80%; padding: 0.5rem; border-radius: 5px; border: none; margin-right: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>Panel Serwera Minecraft</h1>
+<div class="nav">
+<button onclick="showSection('opis')">Opis Serwera</button>
+<button onclick="showSection('pliki')">Pliki</button>
+<button onclick="showSection('pluginy')">Pluginy</button>
+<button onclick="showSection('paczki')">Paczki Pluginów</button>
+<button onclick="openModal('start')">Start Serwera</button>
+<button onclick="openModal('restart')">Restart Serwera</button>
+<button onclick="showSection('ip')">Zmiana IP</button>
+</div>
+
+<div id="fullscreenModal" class="fullscreen-modal">
+<div id="modalText"></div>
+<button class="modal-button" onclick="proceedServerAction()">OK</button>
+</div>
+
+<div id="opis" class="section active">
+<h2>Opis Serwera</h2>
+<textarea id="serverDescription">Tu wpisz opis serwera, informacje o świecie, reguły i inne szczegóły.</textarea>
+<br>
+<button class="primary" onclick="saveDescription()">Zapisz opis</button>
+<p id="saveMessage" style="color: #0f0;"></p>
+<p style="margin-top:1rem; color:#fff;">Aktualne IP serwera: <span id="currentIP">example.pl</span></p>
+</div>
+
+<div id="pliki" class="section">
+<h2>Pliki Serwera</h2>
+<p>Lista plików i folderów serwera:</p>
+<div class="file-list" id="fileList"></div>
+</div>
+
+<div id="pluginy" class="section">
+<h2>Pluginy</h2>
+<div id="pluginList"></div>
+<div id="installedPlugins"></div>
+</div>
+
+<div id="paczki" class="section">
+<h2>Paczki Pluginów</h2>
+<div id="packageList"></div>
+<div id="installedPackages"></div>
+</div>
+
+<div id="ip" class="section">
+<h2>Zmiana IP Serwera</h2>
+<input type="text" id="serverIP" placeholder="Wpisz nowe IP (końcówka .pl)">
+<button class="primary" onclick="changeIP()">Zmień IP</button>
+<p id="ipMessage" style="color: #0f0;"></p>
+</div>
+
+<script>
+let serverAction = '';
+let countdownInterval;
+
+function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function saveDescription() {
+    document.getElementById('saveMessage').textContent = 'Opis zapisany na serwerze!';
+}
+
+function changeIP() {
+    let newIP = document.getElementById('serverIP').value;
+    if(!newIP) { alert('Wpisz poprawne IP!'); return; }
+    if(!newIP.endsWith('.pl')) newIP += '.pl';
+    document.getElementById('ipMessage').textContent = `IP serwera zmienione na: ${newIP}`;
+    document.getElementById('currentIP').textContent = newIP;
+}
+
+function openModal(type) {
+    serverAction = type;
+    const modal = document.getElementById('fullscreenModal');
+    const modalText = document.getElementById('modalText');
+    let countdown = 5;
+    modalText.textContent = type === 'start' ? `Serwer zostanie uruchomiony za ${countdown} sekund...` : `Serwer zostanie zrestartowany za ${countdown} sekund...`;
+    modal.style.display = 'flex';
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        countdown--;
+        if(countdown <= 0) {
+            proceedServerAction();
+        } else {
+            modalText.textContent = serverAction === 'start' ? `Serwer zostanie uruchomiony za ${countdown} sekund...` : `Serwer zostanie zrestartowany za ${countdown} sekund...`;
+        }
+    }, 1000);
+}
+
+function proceedServerAction() {
+    clearInterval(countdownInterval);
+    const modal = document.getElementById('fullscreenModal');
+    if(serverAction === 'start') {
+        window.open('https://www.serwerfree.pl.pl/start','_blank');
+    } else if(serverAction === 'restart') {
+        window.open('https://www.serwerfree.pl.pl/restart','_blank');
+    }
+    serverAction = '';
+    modal.style.display = 'none';
+}
+
+const files = ['world', 'plugins', 'server.properties', 'ops.json', 'banned-players.json'];
+const fileListDiv = document.getElementById('fileList');
+files.forEach(file => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    const span = document.createElement('span');
+    span.textContent = file;
+    const btn = document.createElement('button');
+    btn.className = 'file-button';
+    btn.textContent = 'Wejdź';
+    btn.onclick = () => alert(`Otwierasz plik/folder: ${file}`);
+    div.appendChild(span);
+    div.appendChild(btn);
+    fileListDiv.appendChild(div);
+});
+
+const pluginNames = ['EssentialsX', 'LuckPerms', 'CoreProtect', 'WorldGuard', 'WorldEdit', 'ClearLag', 'iConomy', 'ChestShop', 'Jobs Reborn', 'AuctionHouse', 'BedWars', 'BedWarsRel', 'ZNPCS', 'mcMMO', 'MythicMobs', 'Citizens', 'Skript', 'SkriptLang', 'Grim AntiCheat', 'NoCheatPlus', 'AntiCheatReloaded', 'Matrix', 'DiscordSRV', 'ViaVersion', 'ViaBackwards', 'ViaRewind'];
+const pluginListDiv = document.getElementById('pluginList');
+const installedDiv = document.getElementById('installedPlugins');
+pluginNames.forEach(plugin => {
+    const div = document.createElement('div');
+    div.className = 'plugin';
+    div.innerHTML = `<span>${plugin}</span><button class='primary' onclick='installPlugin("${plugin}")'>Zainstaluj</button>`;
+    pluginListDiv.appendChild(div);
+});
+function installPlugin(name) {
+    const pluginDiv = document.createElement('div');
+    pluginDiv.className = 'file';
+    pluginDiv.innerHTML = `<span>${name}.jar</span>`;
+    installedDiv.appendChild(pluginDiv);
+    alert(`Plugin ${name} został zainstalowany!`);
+}
+
+const packages = [{ name: 'Anarchia.gg', plugins: ['EssentialsX','LuckPerms','WorldEdit'] }, { name: 'LifeSteal SMP', plugins: ['EssentialsX','LuckPerms','mcMMO','MythicMobs'] }];
+const packageListDiv = document.getElementById('packageList');
+const installedPackagesDiv = document.getElementById('installedPackages');
+packages.forEach(pkg => {
+    const div = document.createElement('div');
+    div.className = 'package';
+    div.innerHTML = `<span>${pkg.name}</span><button class='package-button' onclick='installPackage("${pkg.name}")'>Zainstaluj Paczkę</button>`;
+    packageListDiv.appendChild(div);
+});
+function installPackage(name) {
+    const pkg = packages.find(p => p.name === name);
+    if (!pkg) return;
+    pkg.plugins.forEach(p => installPlugin(p));
+    const pkgDiv = document.createElement('div');
+    pkgDiv.className = 'package';
+    pkgDiv.innerHTML = `<span>${pkg.name} - Paczka zainstalowana z pluginami: ${pkg.plugins.join(", ")}</span>`;
+    installedPackagesDiv.appendChild(pkgDiv);
+}
+</script>
+</body>
+</html>
